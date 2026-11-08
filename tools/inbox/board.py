@@ -2,7 +2,8 @@
 Shares claims.lock.json (and its flock) with claims_gate.py. Items come from main's CLAIMS.md."""
 import json, os, time, fcntl, subprocess, urllib.parse
 TTL, MAXN = 3 * 86400, 2
-ORDER = ['S-201', 'S-401', 'S-101', 'S-501', '实物层']
+SMALL_ONLY = {'marvis': 1}  # 只接备注含「小活」的事项，最多 1 项（委托人 2026-11-08）
+ORDER = ['Windows', 'S-251', '近景', 'Blender 参考', 'Blender 终版', '屋面云纹', '履带吊', '小屏', '公开数据', '难懂字幕', 'GPU', '插件镜头', '实物层']
 
 
 def _items(root):
@@ -20,7 +21,18 @@ def _items(root):
         if set(''.join(c)) <= set('-: '):
             continue
         d = dict(zip(hdr, c))
-        out.append({'item': c[0], 'owner': d.get('负责人', '—').strip('` '), 'state': d.get('状态', '')})
+        out.append({'item': c[0], 'owner': d.get('负责人', '—').strip('` '), 'state': d.get('状态', ''), 'note': d.get('备注', '')})
+    return out
+
+
+def _local(root):
+    t = subprocess.run(['git', '-C', os.path.join(root, 'hzwest-atlas.git'), 'show', 'main:AGENTS.md'], capture_output=True, text=True).stdout
+    sec = t.split('### 1.1', 1)[-1].split('##', 1)[0] if '### 1.1' in t else ''
+    out = set()
+    for ln in sec.splitlines():
+        c = [x.strip().strip('`') for x in ln.strip().strip('|').split('|')]
+        if len(c) >= 3 and c[2].startswith('有'):
+            out.add(c[0])
     return out
 
 
@@ -33,6 +45,58 @@ def _agents(root):
 
 def _bj(t):
     return time.strftime('%m-%d %H:%M', time.gmtime(t + 8 * 3600))
+
+
+def _git(root, *a):
+    return subprocess.run(['git', '-C', os.path.join(root, 'hzwest-atlas.git')] + list(a), capture_output=True, text=True).stdout
+
+
+def _requests(root, a):
+    t = _git(root, 'show', 'main:CLAIMS.md'); sec = ''; out = []
+    for ln in t.splitlines():
+        if ln.startswith('## '):
+            sec = ln[3:].strip(); continue
+        if sec.startswith('接口请求') and ln.startswith('|') and f'| {a} |' in ln:
+            c = [x.strip() for x in ln.strip().strip('|').split('|')]
+            out.append((c[2][:60], c[-1] if len(c) >= 5 and c[-1] else '（未回复）'))
+    return out
+
+
+def _orders(root, a):
+    t = _git(root, 'show', 'main:CLAIMS.md'); sec = ''; out = []
+    for ln in t.splitlines():
+        if ln.startswith('## '):
+            sec = ln[3:].strip(); continue
+        if sec.startswith('派单') and ln.startswith('|'):
+            c = [x.strip() for x in ln.strip().strip('|').split('|')]
+            if len(c) >= 5 and c[0].startswith('D-') and (a in [x.strip() for x in c[1].replace('，', '、').split('、')] or c[1] == '全体') and c[4] not in ('完成', '撤回'):
+                out.append(f'  {c[0]} · {c[2]} · {c[3]} · {c[4]}')
+    return out
+
+
+def agent_view(root, a, items, lock, now):
+    vf = os.path.join(root, 'visits.json')
+    try: vis = json.load(open(vf))
+    except Exception: vis = {}
+    last = vis.get(a, now - 86400)
+    L = [f'{a} 的进门画面（{_bj(now)} 北京时间；上次来：{_bj(last)}）', '']
+    mine = [f'  {k} · 锁到 {_bj(v["t"] + TTL)}' for k, v in lock.items() if v['a'] == a]
+    mine += [f'  {i["item"]} · {i["state"]}' for i in items if i['owner'] == a and i['item'] not in lock and i['state'] not in ('完成',)]
+    od = _orders(root, a)
+    L += ['派给你的（集成人按合并情况下发，优先做；提交写 [D-xx]）：'] + (od or ['  （无）']) + ['']
+    L += ['你手上的事项：'] + (mine or ['  （无）'])
+    merged = set(_git(root, 'branch', '--format=%(refname:short)', '--merged', 'main').split())
+    br = [b for b in _git(root, 'for-each-ref', '--format=%(refname:short)', f'refs/heads/agent/{a}/').split() if not b.endswith('/join')]
+    L += ['', '你的分支：'] + ([f'  {b} · {"已合入 main" if b in merged else "待合并"}' for b in br] or ['  （无）'])
+    rq = _requests(root, a)
+    L += ['', '你的接口请求：'] + ([f'  {q} → {r}' for q, r in rq] or ['  （无）'])
+    since = time.strftime('%Y-%m-%dT%H:%M:%S+00:00', time.gmtime(last))
+    ch = _git(root, 'log', 'main', f'--since={since}', '--format=  %h %s', '--', 'AGENTS.md', 'docs/BRIEF.md', 'docs/tasks', 'docs/review', 'docs/hz-atlas-check.md').strip()
+    L += ['', '上次来之后规矩/任务书/审查的变化（git pull 后细读）：', ch or '  （无）']
+    vis[a] = now
+    try: json.dump(vis, open(vf, 'w'))
+    except OSError: pass
+    return '\n'.join(L) + '\n\n'
 
 
 def handle(root, path, query):
@@ -60,6 +124,12 @@ def handle(root, path, query):
                 if path == '/claim':
                     if row['owner'] not in ('—', '', a) or row['state'] in ('保留', '完成'):
                         msg, code = f'拒绝：「{k}」{row["state"] or "已有负责人"}（{row["owner"]}）', 409
+                    elif '需本地' in row.get('note', '') and a not in _local(root):
+                        msg, code = f'拒绝：此项需本地 Blender，先在 AGENTS.md 1.1 自报本地能力', 409
+                    elif a in SMALL_ONLY and '小活' not in row.get('note', ''):
+                        msg, code = f'拒绝：{a} 目前只接备注标「小活」的事项', 409
+                    elif a in SMALL_ONLY and not h and sum(v['a'] == a for v in lock.values()) >= SMALL_ONLY[a]:
+                        msg, code = f'拒绝：{a} 同时最多 {SMALL_ONLY[a]} 项，先完成或 release', 409
                     elif h and h['a'] != a:
                         msg, code = f'拒绝：「{k}」已被 {h["a"]} 于 {_bj(h["t"])} 认领', 409
                     elif not h and sum(v['a'] == a for v in lock.values()) >= MAXN:
@@ -85,7 +155,8 @@ def handle(root, path, query):
                 st = '空 ← 可认领'
             rows.append(f'{i["item"]:<14}  {st}')
         free = [i['item'] for i in items if i['item'] not in lock and i['owner'] in ('—', '')]
-        body = (msg + '\n\n' if msg else '') + f'认领板（实时，{_bj(now)} 北京时间）\n' + '\n'.join(rows) + \
+        head = agent_view(root, q['agent'], items, lock, now) if path == '/board' and q.get('agent') in _agents(root) else ''
+        body = (msg + '\n\n' if msg else '') + head + f'认领板（实时，{_bj(now)} 北京时间）\n' + '\n'.join(rows) + \
             ('\n\n推荐下一项：' + sorted(free, key=lambda x: next((n for n, p in enumerate(ORDER) if x.startswith(p)), 99))[0] if free else '\n\n全部已认领') + \
             '\n\n认领：curl -X POST "https://8090-agqw7hn5d3p3sl4cbll4o2rf5e.instabox.tech/claim?agent=<名字>&item=S-401"\n放回：curl -X POST "https://8090-agqw7hn5d3p3sl4cbll4o2rf5e.instabox.tech/release?agent=<名字>&item=S-401"\n'
         return code, body

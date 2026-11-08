@@ -2,17 +2,45 @@
 
 任何智能体（不同 Hark 账号或其他 AI）参与本仓库前，先读完本页和 `docs/BRIEF.md`（项目简报：目标、委托人口味、插件接法）。每个空置任务都有任务书 `docs/tasks/<事项>.md`。
 
+## 0. 开工三步（不需要委托人转述，一切以仓库为准）
+
+1. `curl -s "https://8090-agqw7hn5d3p3sl4cbll4o2rf5e.instabox.tech/board?agent=<你的名字>"`：你手上的事项、你的分支合了没、你的接口请求有没有回复、你上次来之后规矩改了什么。
+2. `git pull`，读本文件和你事项的任务书（`docs/tasks/`）、最新审查意见（`docs/review/`）。
+3. 有问题写进 `CLAIMS.md`「接口请求」，不经过委托人；hark-cr 每小时回复一次。
+
+**派单**：hark-cr 每次合并、审查后，把发现的后续问题拆成小单写进 `CLAIMS.md`「派单」，指名给相关作者（或「全体」）。你的进门画面最上面就是派给你的单，**先做派单，再做自领事项**；派单不占 2 项认领名额。提交标题写 `[D-xx] ...`，合并后 hark-cr 关单。做不了就在该行写原因，hark-cr 改派。
+
+**建议**：在你自己那边设一个定时任务（每 1–2 小时），每次跑第 1 步；有派单或审查意见就接着做，没有就安静结束。这样委托人不用传话。
+
+委托人只管三件事：做什么、先做哪个、好不好。他的意见由 hark-cr 写进 `docs/review/`，不靠转述。
+
 ## 1. 名册
 
 | 名字（Agent） | 身份 | 角色 | 提交途径 |
 |---|---|---|---|
 | `hark-cr` | Hark · changrong996 账号 | **集成人**：审查、合并、推送 main，维护共用文件 | 直接推送 |
 | `muse-tibo-cs` | muse 智能体（GitHub tanxinhao2026-netizen） | 图册旁路 hzatlas、检查基座 | fork + PR |
-| `hark-cs` | Hark · changsheng0804 账号（hark-changsheng） | 待认领 | B 收件 |
-| `hark-fangyi` | Hark · 方熠账号 | 待认领 | B 收件 |
-| `hark-liuzhijie` | Hark · 刘志杰账号 | 待认领 | B 收件 |
+| `hark-cs` | Hark · changsheng0804 账号（hark-changsheng）；额度最多，可用本地 Mac、虚拟机、多种 API/CLI、本地 Blender → 优先接重活（渲染、GPU 审计） | S-401、协作工具（relay） | B 收件 |
+| `hark-fangyi` | Hark · 方熠账号 | S-201 | B 收件 |
+| `hark-liuzhijie` | Hark · 刘志杰账号 | S-101、S-501 | B 收件 |
+| `marvis` | Marvis · 委托人朋友的 Windows 本机智能体，试用本协作方式（无 GitHub 账号）。**只接备注标「小活」的事项，同时最多 1 项；交付一律人工审，不进自动合并档** | 待认领；建议 Windows 真机审查 | B 收件 |
 
-新智能体：在 `CLAIMS.md` 的「报名」区加一行（名字、身份、途径），由 hark-cr 合入名册（每天 9:00、15:00、21:00 收件）。走收件仓库的，报名用分支 `agent/<名字>/join`（名册外的名字只能推这个分支）。名字用小写字母、数字、连字符，3–24 位，终身不变。
+### 1.1 本地能力（自报，决定重活给谁）
+
+渲染、精修这类重活只给有本地权限的智能体。请在下表自报你那边**实际能跑**的东西（改这张表算合法改动，提交写 `[caps]`）。备注里标「需本地」的事项，只有本表 Blender 一栏为「有」的才能认领。
+
+| 名字 | 本地机器 | Blender | 本地视觉模型 CLI（如 Gemini 4） | 其它 |
+|---|---|---|---|---|
+| `hark-cr` | 无（云沙盒，无 GPU） | 无 | 可经委托人 Mac 调用，限审查 | 集成、Node 检查 |
+| `hark-cs` | Mac + 虚拟机 | 有（待确认版本） | 未报 | 多种 API/CLI |
+| `hark-fangyi` | 未报 | 未报 | 未报 | |
+| `hark-liuzhijie` | 未报 | 未报 | 未报 | |
+| `muse-tibo-cs` | 未报 | 未报 | 未报 | |
+| `marvis` | Windows | 未报 | 未报 | 只接小活 |
+
+分工原则：建模规则、图纸、数据在仓库里由大家做；**Blender 精细渲染与最后精修交给本地有 Blender + 视觉模型的智能体**，用视觉模型自评出图，再交结论与图。
+
+新智能体：在 `CLAIMS.md` 的「报名」区加一行（名字、身份、途径），由 hark-cr 合入名册（每小时整点收件，8:00–23:00 北京时间）。走收件仓库的，报名用分支 `agent/<名字>/join`（名册外的名字只能推这个分支）。名字用小写字母、数字、连字符，3–24 位，终身不变。
 
 ## 2. 统一标注
 
@@ -38,6 +66,9 @@ curl -s -X POST "https://8090-agqw7hn5d3p3sl4cbll4o2rf5e.instabox.tech/release?a
 - 不需要再为认领改 CLAIMS.md；hark-cr 每小时把认领板同步进去。若推送里改了 CLAIMS.md，也会按同一把锁检查。
 - 状态：`认领` → `进行` → `待合并` → `完成`（由 hark-cr 改为完成）。
 
+### 3.1 活的大小
+CLAIMS 备注标「大活 / 中活 / 小活」。大活：新图、新模块、渲染，需较强模型与算力；小活：只读审查、资料核对、文字改写，不改代码或只加记录。委托人可按智能体能力限定可接范围（见名册）。
+
 ## 4. 边界（最重要）
 
 - **共用文件只由集成人修改**：`web/hzview.js`、`web/hzwest.html`、`web/core/seq.js`、`web/hzseq.js`、`web/hzsheet.js`、`.github/`、`tools/hz/check_all.js`。需要新接口时，在 `CLAIMS.md` 的「接口请求」区提出，hark-cr 来加。
@@ -53,6 +84,10 @@ curl -s -X POST "https://8090-agqw7hn5d3p3sl4cbll4o2rf5e.instabox.tech/release?a
 - 改了画面的，PR / 提交说明里写清楚：看哪个链接、哪个 `#sheet=` / `#focus=`、预期看到什么。
 - 页面要求：一屏看完、核心信息同时可见、不穿模；镜头相关改动需附扫描结果（违反 0、卡住 0）。
 - 线上：https://changrong996-droid.github.io/hzwest-atlas/ （main 推送后约 1 分钟更新）。
+
+### 5.1 合并分档
+- **自动合**：`check_all` 通过，且改动只落在你认领事项的文件里（`web/sheets/<图号>.js`、`tools/hz/check_<图号>.js`、`docs/tasks/<图号>.md`、`docs/audit/`、`web/hzreal.js` 的新增记录、`CLAIMS.md` 的新增行）。收件时直接合入 main，记 CHANGELOG。
+- **人工合**：动了第 4 节共用文件、接口合同或别人的范围，由 hark-cr 审。
 
 ## 6. 两条提交途径
 
