@@ -8,18 +8,22 @@
 
   HZA.PAGES = {
     'S-000': { title: '总图', on: 1, sheets: [] },
-    'S-101': { title: '地下', on: 1, sheets: ['S-301-3'] },
-    'S-201': { title: '承轨层', on: 1, sheets: ['S-301-3'] },
+    'S-101': { title: '地下', on: 1, sheets: ['S-101-1'] },
+    'S-201': { title: '承轨层', on: 1, sheets: ['S-201-1'] },
     'S-301': { title: '整体提升', on: 1, sheets: ['S-301-1', 'S-301-2', 'S-301-3', 'S-301-4'] },
-    'S-401': { title: '屋面', on: 1, sheets: ['S-301-4', 'S-301-3'] },
-    'S-501': { title: '开通', on: 1, sheets: [] },
+    'S-401': { title: '屋面', on: 1, sheets: ['S-401-1'] },
+    'S-501': { title: '开通', on: 1, sheets: ['S-501-1'] },
   };
 
   HZA.SHEETS = {
+    'S-101-1': { no: PFX + 'S-101-1', title: '地下横剖面 · 向东看', plugin: 'S-101', canvas: 'sh-s101-1', owner: 'S-101', aliases: [] },
+    'S-201-1': { no: PFX + 'S-201-1', title: '承轨层平面', plugin: 'S-201', canvas: 'sh-s201-1', owner: 'S-201', aliases: [] },
     'S-301-1': { no: PFX + 'S-301-1', title: '千斤顶平面布置 · 剖面净空', fn: 'jack', canvas: 'sh-jack', owner: 'S-301', aliases: [] },
     'S-301-2': { no: PFX + 'S-301-2', title: '屋盖提升图', fn: 'lift', canvas: 'sh-s301-2', owner: 'S-301', aliases: ['HZW-A-501'] },
     'S-301-3': { no: PFX + 'S-301-3', title: '横剖面 B–B · x = 39 m', fn: 'section', canvas: 'sh-s301-3', owner: 'S-301', aliases: ['HZW-A-301'] },
     'S-301-4': { no: PFX + 'S-301-4', title: '屋盖网架平面', fn: 'plan', canvas: 'sh-s301-4', owner: 'S-301', aliases: ['HZW-A-101'] },
+    'S-401-1': { no: PFX + 'S-401-1', title: '屋面铺设平面', plugin: 'S-401', canvas: 'sh-s401-1', owner: 'S-401', aliases: [] },
+    'S-501-1': { no: PFX + 'S-501-1', title: '站区总平面', plugin: 'S-501', canvas: 'sh-s501-1', owner: 'S-501', aliases: [] },
   };
 
   const slot = (status, note) => ({ status, note });
@@ -42,10 +46,10 @@
       built: slot('部分', '同上'),
       real: slot('无', '同上'),
     },
-    'S-101': sub(slot('部分', '交叉引用 S-301-3')),
-    'S-201': sub(slot('部分', '交叉引用 S-301-3')),
-    'S-401': sub(slot('部分', '交叉引用 S-301-4、S-301-3')),
-    'S-501': sub(slot('无', '无独立图纸')),
+    'S-101': sub(slot('有', 'S-101-1')),
+    'S-201': sub(slot('有', 'S-201-1')),
+    'S-401': sub(slot('有', 'S-401-1')),
+    'S-501': sub(slot('有', 'S-501-1')),
   };
 
   const strip = (s) => (s.startsWith(PFX) ? s.slice(PFX.length) : s);
@@ -182,17 +186,21 @@
 
   const subOf = () => {
     const n = Number(new URLSearchParams((location.hash || '').slice(1)).get('sub'));
-    return n === 1 || n === 2 || n === 3 || n === 4 ? n : 1;
+    return Number.isInteger(n) && n >= 1 && n <= 8 ? n : 1;
   };
 
   let mounted = false;
+  let builtPage = null;
+  let baseLen = 0;
+  let pushedCount = 0;
   let canvases = [];
   let tabs = [];
 
   HZA.setSub = function (k) {
     const S = G.__pv;
     if (!S || !S.layout) return;
-    const idx = k === 2 || k === 3 || k === 4 ? k : 1;
+    const list = HZA.sheetsOf(builtPage || S.sheet || 'S-301');
+    const idx = Number.isInteger(k) && k >= 1 && k <= list.length ? k : 1;
     canvases.forEach((el, i) => {
       if (el) el.classList.toggle('hz-off', i + 1 !== idx);
     });
@@ -242,47 +250,87 @@
     const col = document.getElementById('col');
     if (!col) return;
     mounted = true;
+    baseLen = S.SHEETS.length;
 
     const st = document.createElement('style');
     st.id = 'hzatlas-css';
     st.textContent = '#col{grid-template-rows:auto minmax(0,1fr)!important;position:relative}#hz-subtabs{display:flex;gap:4px;font-family:var(--mono);font-size:12px}#hz-subtabs .st{padding:3px 8px;border:1px solid var(--line);border-radius:3px;cursor:pointer;background:#fbf9f5}#hz-subtabs .st.on{background:var(--ink);color:#fff}#hz-subtabs .st small{opacity:.55;font-size:10px;font-weight:400;margin-right:5px}#hz-subtabs .hz-hint{color:#8a8175;font-size:11px;margin-left:8px;align-self:center}#col canvas.sheet.hz-off{visibility:hidden;position:absolute;inset:0;pointer-events:none}';
     document.head.appendChild(st);
 
-    const list = HZA.sheetsOf('S-301');
     const bar = document.createElement('div');
     bar.id = 'hz-subtabs';
-    tabs = list.map((item, i) => {
-      const sp = document.createElement('span');
-      sp.className = 'st';
-      sp.setAttribute('data-id', item.id);
-      sp.innerHTML = '<small>' + item.no + '</small>' + item.title.split('·')[0].trim();
-      sp.onclick = () => HZA.setSub(i + 1);
-      bar.appendChild(sp);
-      return sp;
-    });
-    const hint = document.createElement('span');
-    hint.className = 'hz-hint';
-    hint.textContent = '点击图纸 · 镜头飞过去';
-    bar.appendChild(hint);
     col.insertBefore(bar, col.firstChild);
 
-    canvases = list.map((item) => {
-      if (item.canvas === 'sh-jack') return document.getElementById('sh-jack');
-      const el = document.createElement('canvas');
-      el.id = item.canvas;
-      el.className = 'sheet hz-off';
-      el.setAttribute('aria-label', item.no + ' ' + item.title);
-      col.appendChild(el);
-      S.SHEETS.push({ id: item.canvas, fn: HZA.wrapFn(S.SH[item.fn], item.no, item.fn), no: item.no, el, key: '', drawn: 0, n: 0, scale: '' });
-      wireFly(el, item.id);
-      return el;
-    });
+    function teardown() {
+      canvases.forEach((el) => {
+        if (el && el.id !== 'sh-jack' && el.parentNode) el.parentNode.removeChild(el);
+      });
+      while (pushedCount > 0 && S.SHEETS.length > baseLen) {
+        S.SHEETS.pop();
+        pushedCount--;
+      }
+      pushedCount = 0;
+      canvases = [];
+      tabs = [];
+      builtPage = null;
+    }
 
-    bar.style.display = S.sheet === 'S-301' ? '' : 'none';
+    function buildFor(page) {
+      const list = HZA.sheetsOf(page);
+      bar.innerHTML = '';
+      tabs = list.map((item, i) => {
+        const sp = document.createElement('span');
+        sp.className = 'st';
+        sp.setAttribute('data-id', item.id);
+        sp.innerHTML = '<small>' + item.no + '</small>' + item.title.split('·')[0].trim();
+        sp.onclick = () => HZA.setSub(i + 1);
+        bar.appendChild(sp);
+        return sp;
+      });
+      if (page === 'S-301') {
+        const hint = document.createElement('span');
+        hint.className = 'hz-hint';
+        hint.textContent = '点击图纸 · 镜头飞过去';
+        bar.appendChild(hint);
+      }
+      canvases = [];
+      list.forEach((item) => {
+        if (item.canvas === 'sh-jack') {
+          canvases.push(document.getElementById('sh-jack'));
+          return;
+        }
+        const drawFn = item.plugin
+          ? (G.HZ_SHEET_PLUGINS || []).find((p) => p.id === item.plugin)?.draw
+          : S.SH[item.fn];
+        if (typeof drawFn !== 'function') {
+          console.warn('hzatlas: 图纸函数缺失 ' + (item.plugin || item.fn));
+          return;
+        }
+        const el = document.createElement('canvas');
+        el.id = item.canvas;
+        el.className = 'sheet hz-off';
+        el.setAttribute('aria-label', item.no + ' ' + item.title);
+        col.appendChild(el);
+        S.SHEETS.push({ id: item.canvas, fn: HZA.wrapFn(drawFn, item.no, item.fn), no: item.no, el, key: '', drawn: 0, n: 0, scale: '' });
+        pushedCount++;
+        if (TITLES[item.id]) wireFly(el, item.id);
+        canvases.push(el);
+      });
+      builtPage = page;
+    }
+
+    const p0 = S.sheet || 'S-301';
+    buildFor(p0);
+    bar.style.display = HZA.sheetsOf(p0).length ? '' : 'none';
     HZA.setSub(subOf());
 
     G.addEventListener('hashchange', () => {
-      if (S.sheet === 'S-301') {
+      const p = S.sheet;
+      if (p !== builtPage) {
+        teardown();
+        buildFor(p);
+      }
+      if (HZA.sheetsOf(p).length) {
         bar.style.display = '';
         HZA.setSub(subOf());
       } else {
