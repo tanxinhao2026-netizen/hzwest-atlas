@@ -44,4 +44,16 @@
 
 ## 全尺寸图与中间产物
 
-全尺寸 PNG（8 张：v1 三张＋v2 五张，1920×1080）与 geometry.json 在执行机 Mac 的 `~/hz-blender-lab/renders/` 与 `~/hz-blender-lab/geometry.json`，按 blender/README.md 的两条命令可随时再生，故不入库。
+全尺寸 PNG（11 张：v1 三张＋v2 五张＋线稿三张，1920×1080）与 geometry.json 在执行机 Mac 的 `~/hz-blender-lab/renders/` 与 `~/hz-blender-lab/geometry.json`，按 blender/README.md 的两条命令可随时再生，故不入库。
+
+## 线稿对照（D-10 补齐）
+
+白模之外同机位补线稿三张（脚本 `blender/build_lines.py`，Blender 5.2.2 的 Freestyle 在本机 EEVEE_NEXT 下可用：Silhouette＋Crease，屋盖格边以角度阈值收紧、只留带状分区感）：
+
+![拼装态线稿](img/2026-11-08-blender/pair_asm_line.jpg)
+
+![成品态线稿](img/2026-11-08-blender/pair_final_line.jpg)
+
+![近景线稿](img/2026-11-08-blender/view_b2_line.jpg)
+
+结论：线稿下拼装↔成品的差异仍然可读（屋面连续性、提升器露出量）；线稿离页面墨线语言比白模近得多——屋盖格只剩轮廓与带状阴影，不淹没主体。这条 Freestyle 路线可供终版精修（D-11）的墨线风格直接沿用。全尺寸图在执行机 `~/hz-blender-lab/renders/`（pair_asm_line.png、pair_final_line.png、view_b2_line.png）。
