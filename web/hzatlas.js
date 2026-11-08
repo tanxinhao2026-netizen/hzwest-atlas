@@ -10,6 +10,7 @@
     'S-000': { title: '总图', on: 1, sheets: [] },
     'S-101': { title: '地下', on: 1, sheets: ['S-101-1'] },
     'S-201': { title: '承轨层', on: 1, sheets: ['S-201-1'] },
+    'S-251': { title: '网架拼装', on: 1, sheets: ['S-251-1'] },
     'S-301': { title: '整体提升', on: 1, sheets: ['S-301-1', 'S-301-2', 'S-301-3', 'S-301-4'] },
     'S-401': { title: '屋面', on: 1, sheets: ['S-401-1'] },
     'S-501': { title: '开通', on: 1, sheets: ['S-501-1'] },
@@ -18,6 +19,7 @@
   HZA.SHEETS = {
     'S-101-1': { no: PFX + 'S-101-1', title: '地下横剖面 · 向东看', plugin: 'S-101', canvas: 'sh-s101-1', owner: 'S-101', aliases: [] },
     'S-201-1': { no: PFX + 'S-201-1', title: '承轨层平面', plugin: 'S-201', canvas: 'sh-s201-1', owner: 'S-201', aliases: [] },
+    'S-251-1': { no: PFX + 'S-251-1', title: '网架拼装平面', plugin: 'S-251', canvas: 'sh-s251-1', owner: 'S-251', aliases: [] },
     'S-301-1': { no: PFX + 'S-301-1', title: '千斤顶平面布置 · 剖面净空', fn: 'jack', canvas: 'sh-jack', owner: 'S-301', aliases: [] },
     'S-301-2': { no: PFX + 'S-301-2', title: '屋盖提升图', fn: 'lift', canvas: 'sh-s301-2', owner: 'S-301', aliases: ['HZW-A-501'] },
     'S-301-3': { no: PFX + 'S-301-3', title: '横剖面 B–B · x = 39 m', fn: 'section', canvas: 'sh-s301-3', owner: 'S-301', aliases: ['HZW-A-301'] },
@@ -48,6 +50,7 @@
     },
     'S-101': sub(slot('有', 'S-101-1')),
     'S-201': sub(slot('有', 'S-201-1')),
+    'S-251': sub(slot('有', 'S-251-1')),
     'S-401': sub(slot('有', 'S-401-1')),
     'S-501': sub(slot('有', 'S-501-1')),
   };

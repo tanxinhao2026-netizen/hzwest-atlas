@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
 const { load, makeCtx, sheetCtx } = require('./harness');
-const { G, HZ, HZS } = load({ extra: ['web/sheets/s101.js', 'web/sheets/s201.js', 'web/sheets/s401.js', 'web/sheets/s501.js', 'web/hzatlas.js'] });
+const { G, HZ, HZS } = load({ extra: ['web/hzreal.js', 'web/sheets/s101.js', 'web/sheets/s201.js', 'web/sheets/s251.js', 'web/sheets/s401.js', 'web/sheets/s501.js', 'web/hzatlas.js'] });
 const HZA = G.HZA;
 HZ.make();
 const SH = HZS.make(HZ);
@@ -173,6 +173,9 @@ check('接新图断言', () => {
   assert.strictEqual(JSON.stringify(HZA.sheetsOf('S-501').map((s) => s.id)), JSON.stringify(['S-501-1']));
   assert.strictEqual(HZA.resolve('HZW-S-101-1'), 'S-101-1');
   assert.strictEqual(HZA.resolve('S-501-1'), 'S-501-1');
+  assert.strictEqual(JSON.stringify(HZA.sheetsOf('S-251').map((s) => s.id)), JSON.stringify(['S-251-1']));
+  assert.strictEqual(HZA.resolve('HZW-S-251-1'), 'S-251-1');
+  assert.strictEqual(HZA.FORMS['S-251'].sheet.status, '有');
   assert.strictEqual(HZA.FORMS['S-501'].sheet.status, '有');
   assert.strictEqual(HZA.FORMS['S-101'].sheet.status, '有');
 });
