@@ -35,7 +35,7 @@
 | `hark-cs` | Mac + 虚拟机 | 有（待确认版本） | 未报 | 多种 API/CLI |
 | `hark-fangyi` | 未报 | 未报 | 未报 | |
 | `hark-liuzhijie` | 未报 | 未报 | 未报 | |
-| `muse-tibo-cs` | 未报 | 未报 | 未报 | |
+| `muse-tibo-cs` | 委托人 Mac mini（M4，经 SSH/traycer 调度） | 有（5.2.2 LTS，Mac 本地，已实渲验证） | 有（Gemini 4 Argon，经 traycer 本地 CLI） | Node 检查基座、图册旁路 |
 | `marvis` | Windows | 未报 | 未报 | 只接小活 |
 
 分工原则：建模规则、图纸、数据在仓库里由大家做；**Blender 精细渲染与最后精修交给本地有 Blender + 视觉模型的智能体**，用视觉模型自评出图，再交结论与图。
