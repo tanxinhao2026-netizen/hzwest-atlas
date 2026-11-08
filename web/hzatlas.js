@@ -199,8 +199,7 @@
   HZA.setSub = function (k) {
     const S = G.__pv;
     if (!S || !S.layout) return;
-    const list = HZA.sheetsOf(builtPage || S.sheet || 'S-301');
-    const idx = Number.isInteger(k) && k >= 1 && k <= list.length ? k : 1;
+    const idx = Number.isInteger(k) && k >= 1 && k <= canvases.length ? k : 1;
     canvases.forEach((el, i) => {
       if (el) el.classList.toggle('hz-off', i + 1 !== idx);
     });
@@ -278,32 +277,31 @@
     function buildFor(page) {
       const list = HZA.sheetsOf(page);
       bar.innerHTML = '';
-      tabs = list.map((item, i) => {
+      tabs = [];
+      canvases = [];
+      list.forEach((item) => {
+        if (item.plugin) {
+          const pl = (G.HZ_SHEET_PLUGINS || []).find((p) => p && p.id === item.plugin);
+          if (!pl || typeof pl.draw !== 'function') {
+            console.warn('hzatlas: 插件图纸缺失 ' + item.plugin);
+          }
+          return;
+        }
+        const idx = tabs.length + 1;
         const sp = document.createElement('span');
         sp.className = 'st';
         sp.setAttribute('data-id', item.id);
         sp.innerHTML = '<small>' + item.no + '</small>' + item.title.split('·')[0].trim();
-        sp.onclick = () => HZA.setSub(i + 1);
+        sp.onclick = () => HZA.setSub(idx);
         bar.appendChild(sp);
-        return sp;
-      });
-      if (page === 'S-301') {
-        const hint = document.createElement('span');
-        hint.className = 'hz-hint';
-        hint.textContent = '点击图纸 · 镜头飞过去';
-        bar.appendChild(hint);
-      }
-      canvases = [];
-      list.forEach((item) => {
+        tabs.push(sp);
         if (item.canvas === 'sh-jack') {
           canvases.push(document.getElementById('sh-jack'));
           return;
         }
-        const drawFn = item.plugin
-          ? (G.HZ_SHEET_PLUGINS || []).find((p) => p.id === item.plugin)?.draw
-          : S.SH[item.fn];
+        const drawFn = S.SH[item.fn];
         if (typeof drawFn !== 'function') {
-          console.warn('hzatlas: 图纸函数缺失 ' + (item.plugin || item.fn));
+          console.warn('hzatlas: 图纸函数缺失 ' + item.fn);
           return;
         }
         const el = document.createElement('canvas');
@@ -316,13 +314,23 @@
         if (TITLES[item.id]) wireFly(el, item.id);
         canvases.push(el);
       });
+      if (page === 'S-301') {
+        const hint = document.createElement('span');
+        hint.className = 'hz-hint';
+        hint.textContent = '点击图纸 · 镜头飞过去';
+        bar.appendChild(hint);
+      }
       builtPage = page;
     }
 
     const p0 = S.sheet || 'S-301';
     buildFor(p0);
-    bar.style.display = HZA.sheetsOf(p0).length ? '' : 'none';
-    HZA.setSub(subOf());
+    if (pushedCount > 0) {
+      bar.style.display = '';
+      HZA.setSub(subOf());
+    } else {
+      bar.style.display = 'none';
+    }
 
     G.addEventListener('hashchange', () => {
       const p = S.sheet;
@@ -330,7 +338,7 @@
         teardown();
         buildFor(p);
       }
-      if (HZA.sheetsOf(p).length) {
+      if (pushedCount > 0) {
         bar.style.display = '';
         HZA.setSub(subOf());
       } else {
